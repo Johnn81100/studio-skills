@@ -12,6 +12,7 @@ quand il juge que c'est pertinent, ou par l'utilisateur avec `/<nom>`.
 |---|---|
 | **`/feature-start`** | Démarre une feature dans un git worktree isolé, selon la convention de branche `feature/XXX-00-nom-court` |
 | **`/find-skills`** | Cherche et installe des skills depuis l'écosystème public, quand une capacité manque |
+| **`/docker-disk`** | Récupère l'espace pris par Docker sous Windows/WSL2 : purge complète puis compactage du `.vhdx`, qui ne rétrécit jamais seul |
 | **`/pat-github`** | Renouvelle le token GitHub fine-grained du plugin MCP `github` : révocation, les 8 permissions retenues, stockage hors fichier de config |
 | **`/tailwind-v4-shadcn`** | Mise en place Tailwind CSS v4 + shadcn/ui sur Vite/React : `@theme inline`, variables CSS, dark mode, pièges de la v4 |
 
