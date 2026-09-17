@@ -10,9 +10,10 @@ description: Consigner une session de travail dans le relevé de temps de factur
 - **Le relevé vit dans un dépôt dédié, hors de tout dépôt client.** Un client ne
   voit jamais ce relevé. Rien de la facturation ne s'écrit dans le dépôt du
   projet en cours : ni fichier, ni note, ni commit.
-- **Ce skill mène le dialogue, le script du relevé écrit.** Ne jamais modifier
-  le CSV à la main : `outils/ajouter-session.ps1` contrôle les valeurs et le
-  plafond, écrit la ligne, la commite, la pousse et régénère le xlsx.
+- **Ce skill mène le dialogue, le script du relevé écrit.** Ne jamais ajouter
+  de ligne au CSV à la main : `outils/ajouter-session.ps1` contrôle les valeurs
+  et le plafond, écrit la ligne, la commite, la pousse et régénère le xlsx.
+  Seule exception, la correction d'une ligne existante (dernière section).
 - **La durée vient toujours de l'utilisateur.** Ne jamais la deviner, ni la
   déduire de la longueur de la conversation ou des horaires des commits.
 - **Rien n'est écrit sans validation explicite** de la ligne complète.
@@ -109,8 +110,22 @@ assembler la commande dans une chaîne ni passer par `Invoke-Expression`.
     -Simulation
 ```
 
-`-Jours` s'écrit avec un point (`0.25`), `-Facturable` vaut `oui` ou `non`,
-`-Date` est au format `AAAA-MM-JJ`.
+Contraintes vérifiées par le script, à respecter dès la rédaction :
+
+- `-Client` : le nom exact du dossier dans `clients/`, majuscules comprises ;
+- `-Date` : format `AAAA-MM-JJ`, jamais dans le futur ;
+- `-Jours` : `0.25`, `0.5`, `0.75` ou `1`, avec un point ;
+- `-Facturable` : `oui` ou `non`, en minuscules ;
+- `-Projet` et `-Lot` : ni virgule, ni guillemet ;
+- `-Realise` : une seule ligne ;
+- le relevé du client ne doit avoir aucune modification non commitée ;
+- tous les relevés, tous clients confondus, doivent être valides : une ligne
+  invalide chez n'importe quel client bloque l'ajout, il faut la corriger
+  d'abord (dernière section).
+
+La simulation fait tous ces contrôles, état git compris : une simulation
+réussie annonce une écriture qui passera, sauf fichier verrouillé ou relevé
+modifié entre-temps.
 
 Si le script refuse (code 1), expliquer la raison, corriger avec l'utilisateur
 et relancer la simulation.
@@ -138,10 +153,17 @@ sortie avant de conclure quoi que ce soit.
 Le script ne fait qu'ajouter. Pour corriger une ligne existante, et seulement à
 la demande de l'utilisateur :
 
-1. modifier la ligne dans le CSV du client, en gardant le format ;
-2. lancer `outils/generer-xlsx.ps1` pour vérifier que le relevé reste valide ;
+1. modifier la ligne dans le CSV du client, en gardant le format et les
+   contraintes de l'étape 4 ;
+2. lancer `outils/generer-xlsx.ps1` : il refait les mêmes contrôles de valeurs
+   que l'ajout. Un refus indique le fichier et la ligne. Le message « ouvert
+   dans Excel » ne signale pas une erreur du relevé : faire fermer le xlsx et
+   relancer ;
 3. commiter ce seul fichier avec le message
    `<client> : correction de la session du <date>`, puis pousser.
+
+Tant que la correction n'est pas commitée, tout ajout pour ce client est
+refusé : ne pas laisser une correction en suspens.
 
 Jamais de réécriture d'historique ni de push forcé : le dépôt est poussé à
 chaque session.
