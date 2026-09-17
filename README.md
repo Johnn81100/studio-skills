@@ -15,6 +15,7 @@ quand il juge que c'est pertinent, ou par l'utilisateur avec `/<nom>`.
 | **`/docker-disk`** | Récupère l'espace pris par Docker sous Windows/WSL2 : purge complète puis compactage du `.vhdx`, qui ne rétrécit jamais seul |
 | **`/pat-github`** | Renouvelle le token GitHub fine-grained du plugin MCP `github` : révocation, les 8 permissions retenues, stockage hors fichier de config |
 | **`/tailwind-v4-shadcn`** | Mise en place Tailwind CSS v4 + shadcn/ui sur Vite/React : `@theme inline`, variables CSS, dark mode, pièges de la v4 |
+| **`/fin-de-journee`** | Consigne une session dans le relevé de temps de facturation (jours-hommes) : durée demandée, « réalisé » rédigé puis validé, ligne écrite, commitée et poussée par le script du relevé, désigné par `RELEVE_TEMPS_DIR` |
 
 ## Installation
 
