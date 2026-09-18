@@ -10,6 +10,7 @@ quand il juge que c'est pertinent, ou par l'utilisateur avec `/<nom>`.
 
 | Skill | À quoi ça sert |
 |---|---|
+| **`/audit-legacy`** | Audite un projet existant sans doc fiable, au moindre coût : cartographie shell, sous-agents en parallèle, vérification, arbitrage, puis écriture des documents |
 | **`/feature-start`** | Démarre une feature dans un git worktree isolé, selon la convention de branche `feature/XXX-00-nom-court` |
 | **`/find-skills`** | Cherche et installe des skills depuis l'écosystème public, quand une capacité manque |
 | **`/docker-disk`** | Récupère l'espace pris par Docker sous Windows/WSL2 : purge complète puis compactage du `.vhdx`, qui ne rétrécit jamais seul |
