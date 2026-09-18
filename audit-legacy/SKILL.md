@@ -10,7 +10,7 @@ Recopier cette checklist et la cocher au fil de l'audit :
 
 ```text
 - [ ] Session dédiée ouverte, aucun autre sujet en cours
-- [ ] 1. Cartographie shell et liste des fichiers par axe
+- [ ] 1. Cartographie shell, liste des fichiers par axe, périmètre exclu
 - [ ] 2. Tous les sous-agents lancés dans un seul message
 - [ ] 3. Constats vérifiés, négatifs et déductions en priorité
 - [ ] 4. Arbitrage : reclassements, corrélations, cas séparés
@@ -59,6 +59,18 @@ ls .github/workflows/ .gitlab-ci.yml Jenkinsfile 2>/dev/null
 Sans dépôt git ni historique : `find` remplace `git ls-files`, et l'activité des
 fichiers est inconnue. Le signaler dans les documents plutôt que la deviner.
 
+Sans manifeste, les bibliothèques tierces sont souvent recopiées dans le dépôt.
+Les repérer, puis lire leur version dans l'en-tête de chaque fichier
+(`head -5`) :
+
+```bash
+git ls-files | grep -iE '(^|/)(vendor|ext|external|third[_-]?party|libs?)/' \
+  | awk -F/ 'NF>2 {print $1"/"$2"/"$3}' | sort -u
+```
+
+Les versions relevées sont **vérifiées** ; leurs vulnérabilités connues restent
+**supposées** tant qu'elles n'ont pas été confrontées à une base de CVE.
+
 Relever l'écart entre ce que la doc annonce et ce qui existe : c'est souvent la
 première trouvaille.
 
@@ -69,6 +81,10 @@ la question ne porte que sur un module, le dire et proposer une lecture directe
 
 Produire la liste des fichiers de chaque axe (`git ls-files` filtré par chemin),
 à donner aux sous-agents.
+
+Noter aussi ce qui n'entre dans aucun axe, avec le nombre de fichiers et leur
+nature (gabarits, langues, affichage pur). Le document le déclarera hors audit :
+sans cette mention, le lecteur croit que tout a été lu.
 
 Si le code n'est pas rangé par domaine, construire la liste par mots-clés, puis
 retirer les faux positifs avant de la transmettre (`author` répond à `auth`) :
@@ -159,6 +175,12 @@ Où tester, par ordre de préférence :
 Jamais la production. Si aucun test n'est possible, la déduction reste marquée
 **supposé**, avec le test à mener écrit à côté.
 
+Un test qui recopie une expression hors de son fichier vérifie le **mécanisme**,
+pas que la ligne est atteignable avec une entrée contrôlée. L'atteignabilité
+s'établit en lisant le code autour : d'où vient la valeur, quel filtre la
+précède. Tant qu'elle ne l'est pas, écrire « mécanisme vérifié, exploitation
+supposée ».
+
 ## Étape 4 : arbitrer
 
 Corriger trois défauts des rapports d'agents :
@@ -179,6 +201,23 @@ fichiers, plutôt que d'être lue en session principale.
 - Chaque ligne est marquée **vérifié** ou **supposé**
 - Une ligne fausse est pire qu'une ligne vide : on lui fait confiance
 - Jamais de sortie brute d'agent dans un document livré
+
+Plan du document d'audit, dans cet ordre :
+
+1. **Périmètre et méthode** : commit audité, volume, axes, ce qui est hors audit,
+   nombre de constats d'agents et part recoupée
+2. **Légende** : sens de vérifié et de supposé
+3. **Synthèse** : quelques phrases, les chaînes de risques d'abord
+4. **Risques classés** : `| # | Gravité | Risque | Preuve | Statut |`, le statut
+   portant le test qui trancherait
+5. **Corrélations entre axes**
+6. **Cas séparés** : symptômes regroupés par les agents, avec leurs causes
+   distinctes
+7. **Reclassements et faux positifs écartés**, chacun avec sa raison
+8. **Architecture réelle** et **dépendances tierces**, si ces axes ont été
+   couverts
+9. **Tests à mener**, par priorité, avec l'environnement de chacun
+10. **Tests exécutés** : outil, version, résultat
 
 ## Maîtriser le coût
 
