@@ -233,6 +233,64 @@ s'établit en lisant le code autour : d'où vient la valeur, quel filtre la
 précède. Tant qu'elle ne l'est pas, écrire « mécanisme vérifié, exploitation
 supposée ».
 
+### Passage adversarial
+
+À lancer une fois les constats repris rassemblés, avant l'arbitrage. Un agent qui
+ne refait pas l'audit : il reçoit les constats et la liste de fichiers de l'axe,
+et cherche par où chaque affirmation qui ferme une piste est fausse. Produire une
+conclusion et l'attaquer ne mobilisent pas la même lecture : celui qui vient
+d'écrire « recalculé côté serveur » relit pour confirmer, celui à qui on demande
+le contre-exemple descend la condition branche par branche.
+
+Il coûte une fraction d'un axe : il n'ouvre que les fichiers nécessaires à
+quelques affirmations, pas tout l'axe. Modèle `opus`, sans hésiter : c'est le
+travail de raisonnement par excellence, sur une petite surface, et c'est la
+classe d'erreur où un modèle plus léger échoue.
+
+```text
+[contexte du projet]
+
+Voici des affirmations tirées d'un audit de [axe], chacune avec sa preuve :
+[liste numérotée : affirmation, fichier:ligne]
+
+Fichiers à lire : [liste de l'axe].
+
+Pour CHAQUE affirmation, cherche un chemin d'entrée ou une branche de condition
+où elle est FAUSSE. Descends chaque condition branche par branche, y compris
+celles qui paraissent hors sujet.
+Tu ne rends aucun constat nouveau : seulement des contradictions à ces
+affirmations.
+Si tu ne trouves pas de contre-exemple, écris « tenu » et la branche que tu as
+suivie pour t'en assurer.
+Ne propose aucune correction. N'exécute aucun test ni requête réseau.
+
+Rendu, rien d'autre :
+| # | Affirmation | Tenue ou contredite | Fichier:ligne du contre-exemple | Chemin d'entrée |
+```
+
+Ce qu'il rend se vérifie comme le reste : un agent à qui on demande de contredire
+trouve des contradictions là où il n'y en a pas.
+
+### Second passage complet
+
+Rarement justifié. Le rendement d'un audit supplémentaire s'effondre vite, et le
+budget passe mieux dans les tests à mener : une déduction transformée en fait
+vaut plus qu'un constat de plus.
+
+Le justifient : de l'argent qui circule, un contrôle d'accès dont dépend un accès
+client, une remise contractuelle à un tiers. Alors, un second passage sur ces
+seuls axes, jamais sur tous.
+
+Deux règles s'il a lieu :
+
+- **Varier le modèle ou la formulation.** Deux exécutions identiques partagent
+  leurs angles morts : la même question sur les mêmes fichiers produit la même
+  lecture. Reprendre les mêmes axes en variante « violations » plutôt qu'en
+  variante « questions » change ce que l'agent cherche.
+- **Pas de vote majoritaire.** Un constat trouvé par un seul passage est souvent
+  le bon, parce qu'il est le plus difficile. Les désaccords se tranchent contre
+  le code, en relisant les lignes citées, jamais au décompte.
+
 ## Étape 4 : arbitrer
 
 Corriger trois défauts des rapports d'agents :
