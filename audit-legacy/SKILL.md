@@ -23,7 +23,8 @@ Recopier cette checklist et la cocher au fil de l'audit :
 | Travail | Qui le fait |
 |---|---|
 | Compter, lister, historique git | commandes shell |
-| Lire un dossier, résumer, chercher des violations ou des corrélations | sous-agent `sonnet` (par défaut) |
+| Relever ce qui est stocké, affiché, journalisé, envoyé, protégé | sous-agent `sonnet` |
+| Suivre un enchaînement de conditions ou une machine à états | sous-agent `opus` |
 | Relevé mécanique sur une liste de fichiers fournie, sans interprétation | sous-agent `haiku` (facultatif) |
 | Vérifier, arbitrer, écrire | session principale, qui ne lit pas de fichiers entiers |
 
@@ -35,11 +36,29 @@ le contexte d'un sous-agent est jeté quand il rend sa conclusion.
 Juger au coût de la tâche, pas au prix du token : un modèle qui tâtonne fait plus
 de tours, et chaque tour renvoie son contexte.
 
-- **`sonnet`** dès que la consigne demande de résumer, de juger si quelque chose
-  est une violation ou de relier des constats.
+Le partage ne se fait pas entre sujets sensibles et sujets ordinaires, mais entre
+**relever et raisonner** :
+
+- **`sonnet`** pour un axe d'inventaire : quelles données sont stockées,
+  affichées, journalisées, envoyées, quels fichiers protègent quoi. Un constat y
+  tient dans une ligne ou deux du même fichier.
+- **`opus`** pour un axe dont un risque naît d'un enchaînement : parcours de
+  paiement, contrôle d'accès, cycle de session, machine à états. Un constat y
+  demande de suivre une condition sur plusieurs branches ou de relier deux
+  lignes éloignées.
 - **`haiku`** uniquement pour relever des occurrences (routes déclarées, appels de
   logger et leurs champs, variables d'environnement lues) dans des fichiers
   fournis. Jamais pour classer ni résumer.
+
+Des règles globales de l'utilisateur peuvent imposer un modèle pour la sécurité
+ou l'architecture. Elles l'emportent sur ce tableau : appliquer, et l'annoncer en
+une ligne au lancement, en disant ce que ça change pour le coût.
+
+Mesure du 18/09/2026, 3 axes rejoués en `sonnet` sur le même code qu'un audit
+`opus`, corrigé constitué des constats vérifiés de cet audit : 13 constats sur 16
+retrouvés au bon fichier et à la bonne ligne, 2 trouvailles réelles en plus, à
+volume de tokens équivalent. Les 3 ratés étaient tous des enchaînements de
+conditions, tous dans l'axe paiement.
 
 ## Étape 1 : cartographie
 
@@ -86,6 +105,16 @@ Noter aussi ce qui n'entre dans aucun axe, avec le nombre de fichiers et leur
 nature (gabarits, langues, affichage pur). Le document le déclarera hors audit :
 sans cette mention, le lecteur croit que tout a été lu.
 
+Repérer les fichiers que plusieurs axes réclament (classes utilitaires, couche
+d'accès, envoi de courriel, fonctions partagées) et confier chacun à un seul
+axe. Les autres consignes le nommeront comme relevant d'un autre axe. Sans ça,
+le même fichier est payé deux ou trois fois, et deux agents rendent des
+conclusions contradictoires sur les mêmes lignes.
+
+Vérifier chaque chiffre du point d'arrêt par une seconde commande avant de le
+présenter. Un motif trop strict fausse un décompte sans jamais échouer :
+`^use` ne voit pas les imports indentés.
+
 Si le code n'est pas rangé par domaine, construire la liste par mots-clés, puis
 retirer les faux positifs avant de la transmettre (`author` répond à `auth`) :
 
@@ -110,9 +139,14 @@ conformité à l'architecture annoncée, données sensibles et logs, build et
 déploiement, tests. Les axes ne se chevauchent pas : un fichier lu par deux
 agents est payé deux fois.
 
-Utiliser un agent généraliste avec `model: sonnet` (ou `haiku` pour un relevé),
-pas un agent d'exploration : celui-ci lit des extraits pour localiser, il
-n'audite pas.
+Utiliser un agent généraliste, pas un agent d'exploration : celui-ci lit des
+extraits pour localiser, il n'audite pas. Le modèle se choisit par axe, selon le
+tableau ci-dessus.
+
+Restreindre chaque agent à la lecture (`Read`, `Grep`, `Glob`) et à l'écriture de
+son seul fichier de rapport. Un agent qui ouvre un shell finit par attendre une
+permission, et un agent d'arrière-plan qui attend ne le dit pas : il paraît
+seulement très lent.
 
 Un axe trop gros pour être lu sans compaction se découpe par module, un agent
 par module : un agent qui compacte perd ses propres constats.
@@ -127,6 +161,9 @@ ou projet qui a des règles : des violations.
 Fichiers à lire : [liste issue de la cartographie]. Ne cherche pas ailleurs,
 sauf si un de ces fichiers y renvoie explicitement.
 
+Fichiers partagés relevant d'un autre axe : [liste]. Tu peux les lire pour
+comprendre, tu ne rends aucun constat à leur sujet.
+
 Variante questions : réponds à [liste numérotée, par exemple : où est vérifiée
 l'identité, quelles routes en sont exemptées, où sont écrites les données].
 Variante violations : trouve les VIOLATIONS réelles de [règles numérotées,
@@ -138,13 +175,24 @@ Ne propose aucune correction.
 Ne recopie jamais la valeur d'un secret (clé, mot de passe, token) : indique
 seulement le fichier et la ligne.
 N'exécute aucun test, aucune requête réseau, aucune commande qui modifie quoi
-que ce soit. Pour chaque constat DÉDUIT, décris en une ligne le test qui le
-confirmerait ou l'infirmerait, en préférant un test automatisé dans le code.
+que ce soit. N'écris qu'un seul fichier, celui de ton rapport. Pour chaque
+constat DÉDUIT, décris en une ligne le test qui le confirmerait ou
+l'infirmerait, en préférant un test automatisé dans le code.
 
-Rendu, rien d'autre :
+Écris le tableau complet de tes constats dans [chemin de rapport], une ligne
+par constat, colonnes :
 | # | Fichier:ligne | Constat | Constaté ou déduit | Test proposé (si déduit) |
-Puis un décompte chiffré en une ligne.
+
+Réponds ici, et rien d'autre :
+- le décompte chiffré (constats, dont constatés, dont déduits)
+- tes 10 constats les plus graves, au même format de tableau
+- ce que tu n'as pas pu trancher, en une ligne chacun
 ```
+
+Le tableau entier versé dans la réponse est le premier poste de la session
+principale : elle le repaie à chaque requête jusqu'à la fin. Le fichier reste
+consultable par `grep` quand une vérification le demande. Ranger ces fichiers
+hors du dépôt audité, pour ne pas salir son `git status`.
 
 Les agents proposent les tests, la session principale choisit lesquels mener et
 où (étape 3).
@@ -160,6 +208,10 @@ plage de lignes) pour vérifier et arbitrer.
 Ne reprendre aucune conclusion d'agent sans la recouper, par `grep` ciblé :
 
 - les affirmations d'**absence** (« aucune fuite », « zéro occurrence »)
+- les constats **rassurants** : « recalculé côté serveur », « figé en dur »,
+  « déjà assaini ». Ils ferment une piste aussi sûrement qu'une affirmation
+  d'absence, et un agent qui a lu les bonnes lignes peut en tirer l'inverse de
+  ce qu'elles disent
 - les constats les plus graves, un par un
 - les **déductions** : une déduction de sécurité se teste avant d'être écrite
   comme un fait
