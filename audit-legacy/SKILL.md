@@ -11,7 +11,7 @@ Recopier cette checklist et la cocher au fil de l'audit :
 ```text
 - [ ] Session dédiée ouverte, aucun autre sujet en cours
 - [ ] 1. Cartographie shell, liste des fichiers par axe, périmètre exclu
-- [ ] 2. Tous les sous-agents lancés dans un seul message
+- [ ] 2. Tous les axes lancés d'un coup, par le workflow du skill
 - [ ] 3. Constats vérifiés, négatifs et déductions en priorité
 - [ ] 4. Arbitrage : reclassements, corrélations, cas séparés
 - [ ] 5. Documents écrits avec chemins et statut vérifié ou supposé
@@ -133,20 +133,47 @@ ailleurs » la rendrait invisible.
 
 ## Étape 2 : sous-agents en parallèle
 
-Lancer **tous les axes dans le même message**, y compris ceux qui demandent du
+Lancer **tous les axes d'un coup**, y compris ceux qui demandent du
 raisonnement. Axes usuels : authentification et autorisation, accès aux données,
 conformité à l'architecture annoncée, données sensibles et logs, build et
 déploiement, tests. Les axes ne se chevauchent pas : un fichier lu par deux
 agents est payé deux fois.
 
-Utiliser un agent généraliste, pas un agent d'exploration : celui-ci lit des
+Utiliser l'agent `audit-lecture`, pas un agent d'exploration : celui-ci lit des
 extraits pour localiser, il n'audite pas. Le modèle se choisit par axe, selon le
 tableau ci-dessus.
 
-Restreindre chaque agent à la lecture (`Read`, `Grep`, `Glob`) et à l'écriture de
-son seul fichier de rapport. Un agent qui ouvre un shell finit par attendre une
-permission, et un agent d'arrière-plan qui attend ne le dit pas : il paraît
-seulement très lent.
+`audit-lecture` n'a que `Read`, `Grep`, `Glob` et `Write`, et sa consigne borne
+l'écriture à son seul fichier de rapport. Un agent qui ouvre un shell finit par
+attendre une permission, et un agent d'arrière-plan qui attend ne le dit pas : il
+paraît seulement très lent.
+
+### Lancement par le workflow
+
+Lancer `axes.workflow.js`, rangé à côté de ce fichier, avec l'outil Workflow :
+`scriptPath` reçoit le chemin complet du fichier, `args` la cartographie de
+l'étape 1.
+
+```json
+{ "axes": [ { "nom": "auth", "modele": "opus", "consigne": "…", "rapport": "…" } ] }
+```
+
+- `consigne` : le gabarit ci-dessous, rempli pour l'axe. Le workflow n'en porte
+  pas d'autre : le gabarit ne vit qu'ici.
+- `modele` : `sonnet`, `opus` ou `haiku`, selon le tableau. Jamais omis : sans
+  lui, l'agent prendrait le modèle de la session. Le workflow refuse un axe sans
+  modèle.
+- `rapport` : un fichier du dossier temporaire de la session (scratchpad).
+
+Le workflow rend, pour chaque axe, le décompte, les 10 constats les plus graves,
+ce qui n'est pas tranché et les affirmations qui ferment une piste, dans un
+format imposé par schéma : un agent qui s'en écarte doit recommencer. Seul ce
+rendu revient dans la session principale. Un axe sans rendu est listé dans
+`manquants`, à relancer seul.
+
+À défaut (outil Workflow indisponible, agent `audit-lecture` non chargé), lancer
+tous les axes dans le même message avec l'outil Agent, même consigne, même
+modèle.
 
 Un axe trop gros pour être lu sans compaction se découpe par module, un agent
 par module : un agent qui compacte perd ses propres constats.
@@ -187,12 +214,18 @@ Réponds ici, et rien d'autre :
 - le décompte chiffré (constats, dont constatés, dont déduits)
 - tes 10 constats les plus graves, au même format de tableau
 - ce que tu n'as pas pu trancher, en une ligne chacun
+- les affirmations qui ferment une piste (absence, constat rassurant), avec
+  leur fichier:ligne
 ```
 
 Le tableau entier versé dans la réponse est le premier poste de la session
 principale : elle le repaie à chaque requête jusqu'à la fin. Le fichier reste
 consultable par `grep` quand une vérification le demande. Ranger ces fichiers
-hors du dépôt audité, pour ne pas salir son `git status`.
+dans le dossier temporaire de la session : hors du dépôt audité, ils ne salissent
+pas son `git status`, et l'agent doit pouvoir y écrire sans demande de
+permission, qu'il attendrait sans le dire (à confirmer au premier lancement
+réel). Ce dossier disparaît avec la session : ce qui doit durer
+passe dans la note de l'étape 6.
 
 Les agents proposent les tests, la session principale choisit lesquels mener et
 où (étape 3).
@@ -235,9 +268,13 @@ supposée ».
 
 ### Passage adversarial
 
-À lancer une fois les constats repris rassemblés, avant l'arbitrage. Un agent qui
-ne refait pas l'audit : il reçoit les constats et la liste de fichiers de l'axe,
-et cherche par où chaque affirmation qui ferme une piste est fausse. Produire une
+À lancer une fois les constats repris rassemblés, avant l'arbitrage, et jamais
+sur les rendus bruts du workflow : il attaque ce que la vérification a retenu.
+Un agent qui ne refait pas l'audit : il reçoit les constats et la liste de
+fichiers de l'axe, et cherche par où chaque affirmation qui ferme une piste est
+fausse. Sa matière première : les affirmations fermantes rendues par chaque axe,
+recoupées à l'étape 3. Un agent par axe, tous dans le même message, avec l'outil
+Agent : ils sont trop peu nombreux pour justifier un workflow. Produire une
 conclusion et l'attaquer ne mobilisent pas la même lecture : celui qui vient
 d'écrire « recalculé côté serveur » relit pour confirmer, celui à qui on demande
 le contre-exemple descend la condition branche par branche.
@@ -342,6 +379,10 @@ sous-agents.
   (fournis à la fin de chaque tâche) ; pour la session, le bloc Session de
   `/usage` en fin d'audit (une session neuve part de zéro).
   Sans mesure, la répartition des modèles reste une hypothèse.
+- **Agents du workflow** : leur détail se lit dans le dossier de transcription du
+  lancement (`journal.jsonl`, un fichier `agent-<id>.jsonl` par agent), dont le
+  résultat de l'outil Workflow donne le chemin. Le format reste à confirmer au
+  premier lancement réel.
 
 ## Étape 6 : consigner
 
